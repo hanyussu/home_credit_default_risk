@@ -17,82 +17,43 @@ def load_csv(file_name):
 def data_exploratory():
     """
     Performs exploratory data analysis on the credit default risk datasets
-    
-    Returns: Dictionary containing:
-        - loaded datagrames
-        - basic info for each dataframe
-        - missing value stats
-        - descriptive statistics
-        - data types
     """
     print("Starting Exploring Datasets...")
-    # csv_files = [
-    #     "application_test.csv",
-    #     "application_train.csv",
-    #     "bureau.csv",
-    #     "bureau_balance.csv",
-    #     "credit_card_balance.csv",
-    #     "installments_payments.csv",
-    #     "POS_CASH_balance.csv",
-    #     "previous_application.csv"
-    # ]
-    
     csv_files = [
-        "bureau.csv"
+        "application_train.csv",
+        "application_test.csv",
+        "bureau.csv",
+        "bureau_balance.csv",
+        "credit_card_balance.csv",
+        "installments_payments.csv",
+        "POS_CASH_balance.csv",
+        "previous_application.csv"
     ]
     
-    # Dictionary to store all exploratory information
-    results = {
-        "dataframes": {},
-        "stats": {}
-    }
+    # Identify class imbalance in the training dataset
+    application_train_df = load_csv(csv_files[0])
     
-    for filename in csv_files:
-        df = load_csv(filename)
-        results["dataframes"][filename] = df
-        
-        # Create entry for this dataframe's stats
-        df_stats = {}
-        
-        # Basic info 
-        df_stats["shape"] = df.shape
-        df_stats["columns"] = list(df.columns) 
-        
-        # Missing Values
-        missing = df.isnull().sum()
-        # Create a dictionary of columns with missing values
-        missing_by_column = {}
-        for column, count in missing.items():
-            if count > 0:  # Only include columns that have missing values
-                missing_by_column[column] = {
-                    'count': int(count),
-                }
-
-        df_stats["missing"] = {
-             'total': int(missing.sum()),
-             'columns': missing_by_column
-        }
-         
-        # Descriptive Stats
-        categorical_stats = None
-        # if the categorical data exists
-        # df.select_dtypes(include=['object']) selects columns with categorical data type
-        # and returns a dataframe (rows, cols)
-        if df.select_dtypes(include=['object']).shape[1] > 0:
-            categorical_stats = df.describe(include=['object']).to_dict()
-        
-        df_stats["describe"] = {
-            "numeric": df.describe().to_dict(),
-            "categorical": categorical_stats
-        }
+    # Calculate target(label: 0/1) distribution 
+    target_counts = application_train_df['TARGET'].value_counts()
+    total_records = len(application_train_df)
+    target_percentages = target_counts / total_records * 100
+    print("\n-- TARGET (LABELS) DISTRIBUTION --")
+    print("TARGET(0): no repayments difficulties")
+    print("TARGET(1): has repayments difficulties")
+    print("\nCounts:")
+    print(target_counts)
+    print("\nPercentages:")
+    print(f"TARGET(0): {target_percentages[0]:.2f}%")
+    print(f"TARGET(1): {target_percentages[1]:.2f}%")
     
-        # Store dataframe's stats into results
-        results["stats"][filename] = df_stats   
-
-    return results
+    # Feature Correlations with Target value 
+    
+    
+    
+        
+    return 
+    
 
 if __name__ == "__main__":
-    results = data_exploratory()
-    # Create a better formatted outputs using JSON
-    formatted_results = json.dumps(results["stats"], indent=4)
-    print(formatted_results)
+    # Detailed EDA - Exploratory Data Analysis
+    data_exploratory()
