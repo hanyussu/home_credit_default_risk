@@ -50,18 +50,36 @@ def analyze_missing_values(df):
 def identify_feature_types(df):
     """
     Identify neumerical and categorical features
+    Returns: lists of numerical and categorical features 
     """
-    return
-
-def data_Preprocessing():
-    """
-    Preprocess data
-    - Handle categorical features 
-    - Encode categorical features
-    - Transform numerical features
-    """
+    print("\n-- FEATURE TYPE IDENTICATION --\n")
     
-    return  
+    # Initialize lists to store feature types
+    numerical_features = []
+    categorical_features = []
+    
+    # Count unique data types in DataFrame
+    print("Count of each data type:")
+    print(df.dtypes.value_counts())
+    
+    for col in df.columns:
+        # skip id and label
+        if col in ['SK_ID_CURR', 'TARGET']:
+            continue
+        # Rule 1: Object type -> categorial 
+        if df[col].dtype == "object":
+            categorical_features.append(col)
+            
+        # Rule 2: Binary or very few unique values -> likely categorical
+        elif df[col].nunique() < 10:
+            categorical_features.append(col)
+        # Rule 3: Numerical Values
+        else:
+            numerical_features.append(col)
+            
+    print(f"Numerical features: {len(numerical_features)}")
+    print(f"Categorical features: {len(categorical_features)}")
+    return numerical_features, categorical_features 
 
 def data_exploratory(df):
     """
@@ -91,6 +109,41 @@ def data_exploratory(df):
     
     return missing_stats, numerical_features, categorical_features
     
+def data_Preprocessing(df, missing_stats, numerical_features, categorical_features):
+    """
+    Preprocess data
+    - Drop features with excessive missing values (>75%)
+    - Handle missing values in remaining features
+    - Encode categorical features
+    - Transform numerical features
+    
+    Returns: processed dataframe
+    """
+    print("\n-- Data Preprocessing --\n")
+    # Create a copy to avoid modifying the original dataframe
+    processed_df = df.copy()
+    
+    # 1. Drop features with excessive missing values
+    high_missing_features = missing_stats[missing_stats["missing_category"] == "high"].index.tolist()
+    processed_df = processed_df.drop(columns=high_missing_features)
+    print(f"Original shape: {df.shape}, New shape after dropping: {processed_df.shape}")
+    
+    # 2. Handle missing values in reaming features 
+    # Numerical Features: imputes with median 
+    for col in [col for col in numerical_features if col in processed_df.columns]:
+        median_value = processed_df[col].median()
+        processed_df[col] = processed_df[col].fillna(median_value)
+        # print(f"Imputed missing values in '{col}' with median: {median_value}")
+
+    
+    # Categorical Features: imputes with most frequest value
+    
+    # 3. Encode Categorical Features 
+    
+    # 4. Transform Numerical Features
+    
+    
+    return 
 
 if __name__ == "__main__":
     csv_files = [
@@ -111,6 +164,6 @@ if __name__ == "__main__":
     missing_stats, numerical_features, categorical_features = data_exploratory(df)
     
     # Data Preprocessing 
-    # processed_df = data_Preprocessing(missing_stats, numerical_features, categorical_features)
+    processed_df = data_Preprocessing(df, missing_stats, numerical_features, categorical_features)
     
     # Feature Engineering ...
