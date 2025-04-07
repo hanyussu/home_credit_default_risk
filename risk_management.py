@@ -1,7 +1,7 @@
 import numpy as np   # Calculate multi-arrays / matrices 
 import pandas as pd  # Data manipulation (dataframe)
 import os, json      # os: function interact with os
-
+from sklearn.preprocessing import OneHotEncoder # Encoding Categorical Features
 
 def load_csv(file_name):
     """
@@ -108,7 +108,30 @@ def data_exploratory(df):
     numerical_features, categorical_features = identify_feature_types(df)
     
     return missing_stats, numerical_features, categorical_features
+  
+def analyze_categorical_cardinality(df, features):
+    """
+    Analyze the cardinality (number of unique values) of categorical features.
     
+    Encoding Strategy: 
+    - Low cardinality (<=10): 'one_hot'
+    - High cardinality (>10): 'target'
+    """
+    encoder_choice = {}
+    low_card, high_card = 0, 0
+    for col in [col for col in features if col in df.columns]:
+        # Count unique values
+        n_unique = df[col].nunique()
+        if n_unique > 10:
+            encoder_choice[col] = 'high' 
+            high_card += 1
+        else: 
+            encoder_choice[col] = 'low'
+            low_card += 1
+    print(f"Low Categorical Cardinality Feature Counts: {low_card}")        
+    print(f"High Categorical Cardinality Feature Counts: {high_card}\n")
+    return encoder_choice 
+  
 def data_Preprocessing(df, missing_stats, numerical_features, categorical_features):
     """
     Preprocess data
@@ -126,22 +149,42 @@ def data_Preprocessing(df, missing_stats, numerical_features, categorical_featur
     # 1. Drop features with excessive missing values
     high_missing_features = missing_stats[missing_stats["missing_category"] == "high"].index.tolist()
     processed_df = processed_df.drop(columns=high_missing_features)
-    print(f"Original shape: {df.shape}, New shape after dropping: {processed_df.shape}")
+    print(f"Dropped {len(high_missing_features)} high missing features")
     
-    # 2. Handle missing values in reaming features 
+    # 2. Handle missing values in reaming features (Data Imputation)
     # Numerical Features: imputes with median 
     for col in [col for col in numerical_features if col in processed_df.columns]:
         median_value = processed_df[col].median()
         processed_df[col] = processed_df[col].fillna(median_value)
         # print(f"Imputed missing values in '{col}' with median: {median_value}")
-
     
     # Categorical Features: imputes with most frequest value
+    for col in [col for col in categorical_features if col in processed_df.columns]:
+        most_frequent = processed_df[col].mode()[0]
+        processed_df[col] = processed_df[col].fillna(most_frequent)
     
     # 3. Encode Categorical Features 
+    # Categorical Features Cardinality Analysis ---> decide which encoder should be used
+    cardinality_stats = analyze_categorical_cardinality(processed_df, categorical_features)
+    
+    # Separate features by encoding type
+    low_cardinality_features = [col for col in categorical_features if col in processed_df.columns 
+                      and cardinality_stats.get(col) == 'low']
+    high_cardinality_features = [col for col in categorical_features if col in processed_df.columns 
+                      and cardinality_stats.get(col) == 'high']
+    
+    # Drop these features from the dataframe
+    if high_cardinality_features:
+        processed_df = processed_df.drop(columns=high_cardinality_features)
+        print(f"Dropped {len(high_cardinality_features)} high cardinality features")
+    print(f"Original shape: {df.shape}, New shape after dropping: {processed_df.shape}")
+    
+    # Use One-Hot encoding for categorical features
+    
+    
+    
     
     # 4. Transform Numerical Features
-    
     
     return 
 
