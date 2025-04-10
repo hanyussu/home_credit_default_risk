@@ -1,7 +1,8 @@
 import numpy as np   # Calculate multi-arrays / matrices 
 import pandas as pd  # Data manipulation (dataframe)
 import os, json      # os: function interact with os
-from sklearn.preprocessing import OneHotEncoder # Encoding Categorical Features
+# Encoding Categorical Features / stardizing numerical values
+from sklearn.preprocessing import OneHotEncoder, StandardScaler 
 
 def load_csv(file_name):
     """
@@ -132,6 +133,61 @@ def analyze_categorical_cardinality(df, features):
     print(f"High Categorical Cardinality Feature Counts: {high_card}\n")
     return encoder_choice 
   
+def one_hot_encoding(df, categorical_features):
+    """
+    Converting discrete features into numbers
+    """
+    processed_df = df.copy()
+    
+    # Initiate encoder
+    encoder = OneHotEncoder(sparse=False, drop='first', handle_unknown='ignore')
+    
+    cols_to_encode = [col for col in categorical_features if col in processed_df.columns]
+    
+    # Fit and transform data
+    encoded_array = encoder.fit_transform(processed_df[cols_to_encode])
+    
+    # Get feature names
+    feature_names = encoder.get_feature_names_out(cols_to_encode)
+    
+    # Create DataFrame with encoded features
+    encoded_df = pd.DataFrame(
+        encoded_array, 
+        columns=feature_names,
+        index=processed_df.index
+    )
+    
+    # Remove original categorical columns and add encoded ones
+    processed_df = pd.concat(
+        [processed_df.drop(columns=cols_to_encode), encoded_df], 
+        axis=1
+    )
+    
+    print(f"One-hot encoded {len(cols_to_encode)} categorical features into {len(feature_names)} binary features")
+    
+    return processed_df
+
+def standardize_numerical_features(df, numerical_features):
+    """
+    Standardize numerical features to have mean=0 and std=1
+    Returns: DataFrame with standardized numerical features
+    """
+    df_standardized = df.copy()
+    
+    # Create a scaler object
+    scaler = StandardScaler()
+    
+    cols_to_standardize = [col for col in numerical_features 
+                      if col in df_standardized.columns 
+                      and col not in ['SK_ID_CURR', 'TARGET']]
+
+    if cols_to_standardize:
+        # Fit and transform the numerical features 
+        df_standardized[cols_to_standardize] = scaler.fit_transform(
+            df_standardized[cols_to_standardize])
+        print(f"Standardized {len(cols_to_standardize)} numerical features")
+    return df_standardized
+
 def data_Preprocessing(df, missing_stats, numerical_features, categorical_features):
     """
     Preprocess data
@@ -149,7 +205,7 @@ def data_Preprocessing(df, missing_stats, numerical_features, categorical_featur
     # 1. Drop features with excessive missing values
     high_missing_features = missing_stats[missing_stats["missing_category"] == "high"].index.tolist()
     processed_df = processed_df.drop(columns=high_missing_features)
-    print(f"Dropped {len(high_missing_features)} high missing features")
+    print(f"Dropped {len(high_missing_features)} high missing features (for both categorical and numerical)")
     
     # 2. Handle missing values in reaming features (Data Imputation)
     # Numerical Features: imputes with median 
@@ -173,20 +229,131 @@ def data_Preprocessing(df, missing_stats, numerical_features, categorical_featur
     high_cardinality_features = [col for col in categorical_features if col in processed_df.columns 
                       and cardinality_stats.get(col) == 'high']
     
-    # Drop these features from the dataframe
+    # Drop these features from the dataframe (high cardinality)
     if high_cardinality_features:
         processed_df = processed_df.drop(columns=high_cardinality_features)
         print(f"Dropped {len(high_cardinality_features)} high cardinality features")
     print(f"Original shape: {df.shape}, New shape after dropping: {processed_df.shape}")
     
-    # Use One-Hot encoding for categorical features
-    
-    
-    
-    
+    # Use One-Hot encoding for categorical features (low cardinality)
+    if low_cardinality_features:
+        processed_df = one_hot_encoding(processed_df, low_cardinality_features)
+
     # 4. Transform Numerical Features
+    processed_df = standardize_numerical_features(processed_df, numerical_features)
     
-    return 
+    return processed_df
+
+# # --- Testing Feature Engineering --- # 
+# def correlation_based_selection(df, target_col='TARGET', n_features=30):
+#     """
+#     Select top features based on their correlation with the target variable.
+    
+#     Parameters:
+#     - df: DataFrame containing features and target
+#     - target_col: Name of the target column (default: 'TARGET')
+#     - n_features: Number of top features to select (default: 30)
+    
+#     Returns:
+#     - list of selected feature names
+#     """
+#     print("\n-- CORRELATION-BASED FEATURE SELECTION --\n")
+    
+#     # Calculate correlation with target
+#     correlation_with_target = df.drop(columns=['SK_ID_CURR'] if 'SK_ID_CURR' in df.columns else [])
+#     correlation_with_target = correlation_with_target.corr()[target_col].drop(target_col)
+    
+#     # Get absolute correlation values and sort
+#     abs_correlation = correlation_with_target.abs().sort_values(ascending=False)
+    
+#     # Select top n features
+#     top_features = abs_correlation.head(n_features).index.tolist()
+    
+#     print(f"Top {n_features} features by correlation magnitude with target:")
+#     for i, (feature, corr) in enumerate(abs_correlation.head(n_features).items(), 1):
+#         actual_corr = correlation_with_target[feature]
+#         print(f"{i}. {feature}: {actual_corr:.4f}")
+    
+#     return top_features
+
+# def tree_based_selection(df, target_col='TARGET', n_features=30, random_state=42):
+#     """
+#     Select top features using tree-based feature importance.
+    
+#     Parameters:
+#     - df: DataFrame containing features and target
+#     - target_col: Name of the target column (default: 'TARGET')
+#     - n_features: Number of top features to select (default: 30)
+#     - random_state: Random seed for reproducibility
+    
+#     Returns:
+#     - list of selected feature names
+#     """
+#     from sklearn.ensemble import RandomForestClassifier
+    
+#     print("\n-- TREE-BASED FEATURE SELECTION --\n")
+    
+#     # Prepare data
+#     X = df.drop(columns=['SK_ID_CURR', target_col] if 'SK_ID_CURR' in df.columns else [target_col])
+#     y = df[target_col]
+    
+#     # Initialize and fit a tree-based model
+#     rf_model = RandomForestClassifier(n_estimators=100, 
+#                                       max_depth=10, 
+#                                       random_state=random_state, 
+#                                       n_jobs=-1)
+#     rf_model.fit(X, y)
+    
+#     # Get feature importances
+#     feature_importances = pd.DataFrame({
+#         'feature': X.columns,
+#         'importance': rf_model.feature_importances_
+#     }).sort_values('importance', ascending=False)
+    
+#     # Select top n features
+#     top_features = feature_importances.head(n_features)['feature'].tolist()
+    
+#     print(f"Top {n_features} features by tree-based importance:")
+#     for i, row in feature_importances.head(n_features).iterrows():
+#         print(f"{i+1}. {row['feature']}: {row['importance']:.6f}")
+    
+#     return top_features
+
+# def select_features(df, methods=['correlation', 'tree'], n_features=30):
+#     """
+#     Apply multiple feature selection methods and return the union or intersection.
+    
+#     Parameters:
+#     - df: DataFrame containing features and target
+#     - methods: List of methods to use ('correlation', 'tree')
+#     - n_features: Number of top features to select per method (default: 30)
+    
+#     Returns:
+#     - DataFrame with selected features only
+#     """
+#     selected_features = set()
+    
+#     if 'correlation' in methods:
+#         corr_features = correlation_based_selection(df, n_features=n_features)
+#         selected_features.update(corr_features)
+        
+#     if 'tree' in methods:
+#         tree_features = tree_based_selection(df, n_features=n_features)
+#         selected_features.update(tree_features)
+    
+#     # Always include the target and ID if they exist
+#     if 'TARGET' in df.columns:
+#         selected_features.add('TARGET')
+#     if 'SK_ID_CURR' in df.columns:
+#         selected_features.add('SK_ID_CURR')
+    
+#     # Convert to list and select from DataFrame
+#     selected_features_list = list(selected_features)
+#     print(f"\nTotal unique features selected: {len(selected_features_list)}")
+    
+#     return df[selected_features_list]
+
+# # ----------------------------------- # 
 
 if __name__ == "__main__":
     csv_files = [
@@ -209,4 +376,9 @@ if __name__ == "__main__":
     # Data Preprocessing 
     processed_df = data_Preprocessing(df, missing_stats, numerical_features, categorical_features)
     
-    # Feature Engineering ...
+    # Feature Engineering
+    # feature_selected_df = select_features(processed_df)
+    # print(f"Final dataset shape after feature selection: {feature_selected_df.shape}")
+    
+    # Training Models 
+    
