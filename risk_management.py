@@ -245,113 +245,113 @@ def data_Preprocessing(df, missing_stats, numerical_features, categorical_featur
     return processed_df
 
 # # --- Testing Feature Engineering --- # 
-# def correlation_based_selection(df, target_col='TARGET', n_features=30):
-#     """
-#     Select top features based on their correlation with the target variable.
+def correlation_based_selection(df, target_col='TARGET', n_features=30):
+    """
+    Select top features based on their correlation with the target variable.
     
-#     Parameters:
-#     - df: DataFrame containing features and target
-#     - target_col: Name of the target column (default: 'TARGET')
-#     - n_features: Number of top features to select (default: 30)
+    Parameters:
+    - df: DataFrame containing features and target
+    - target_col: Name of the target column (default: 'TARGET')
+    - n_features: Number of top features to select (default: 30)
     
-#     Returns:
-#     - list of selected feature names
-#     """
-#     print("\n-- CORRELATION-BASED FEATURE SELECTION --\n")
+    Returns:
+    - list of selected feature names
+    """
+    print("\n-- CORRELATION-BASED FEATURE SELECTION --\n")
     
-#     # Calculate correlation with target
-#     correlation_with_target = df.drop(columns=['SK_ID_CURR'] if 'SK_ID_CURR' in df.columns else [])
-#     correlation_with_target = correlation_with_target.corr()[target_col].drop(target_col)
+    # Calculate correlation with target
+    correlation_with_target = df.drop(columns=['SK_ID_CURR'] if 'SK_ID_CURR' in df.columns else [])
+    correlation_with_target = correlation_with_target.corr()[target_col].drop(target_col)
     
-#     # Get absolute correlation values and sort
-#     abs_correlation = correlation_with_target.abs().sort_values(ascending=False)
+    # Get absolute correlation values and sort
+    abs_correlation = correlation_with_target.abs().sort_values(ascending=False)
     
-#     # Select top n features
-#     top_features = abs_correlation.head(n_features).index.tolist()
+    # Select top n features
+    top_features = abs_correlation.head(n_features).index.tolist()
     
-#     print(f"Top {n_features} features by correlation magnitude with target:")
-#     for i, (feature, corr) in enumerate(abs_correlation.head(n_features).items(), 1):
-#         actual_corr = correlation_with_target[feature]
-#         print(f"{i}. {feature}: {actual_corr:.4f}")
+    print(f"Top {n_features} features by correlation magnitude with target:")
+    for i, (feature, corr) in enumerate(abs_correlation.head(n_features).items(), 1):
+        actual_corr = correlation_with_target[feature]
+        print(f"{i}. {feature}: {actual_corr:.4f}")
     
-#     return top_features
+    return top_features
 
-# def tree_based_selection(df, target_col='TARGET', n_features=30, random_state=42):
-#     """
-#     Select top features using tree-based feature importance.
+def tree_based_selection(df, target_col='TARGET', n_features=30, random_state=42):
+    """
+    Select top features using tree-based feature importance.
     
-#     Parameters:
-#     - df: DataFrame containing features and target
-#     - target_col: Name of the target column (default: 'TARGET')
-#     - n_features: Number of top features to select (default: 30)
-#     - random_state: Random seed for reproducibility
+    Parameters:
+    - df: DataFrame containing features and target
+    - target_col: Name of the target column (default: 'TARGET')
+    - n_features: Number of top features to select (default: 30)
+    - random_state: Random seed for reproducibility
     
-#     Returns:
-#     - list of selected feature names
-#     """
-#     from sklearn.ensemble import RandomForestClassifier
+    Returns:
+    - list of selected feature names
+    """
+    from sklearn.ensemble import RandomForestClassifier
     
-#     print("\n-- TREE-BASED FEATURE SELECTION --\n")
+    print("\n-- TREE-BASED FEATURE SELECTION --\n")
     
-#     # Prepare data
-#     X = df.drop(columns=['SK_ID_CURR', target_col] if 'SK_ID_CURR' in df.columns else [target_col])
-#     y = df[target_col]
+    # Prepare data
+    X = df.drop(columns=['SK_ID_CURR', target_col] if 'SK_ID_CURR' in df.columns else [target_col])
+    y = df[target_col]
     
-#     # Initialize and fit a tree-based model
-#     rf_model = RandomForestClassifier(n_estimators=100, 
-#                                       max_depth=10, 
-#                                       random_state=random_state, 
-#                                       n_jobs=-1)
-#     rf_model.fit(X, y)
+    # Initialize and fit a tree-based model
+    rf_model = RandomForestClassifier(n_estimators=100, 
+                                      max_depth=10, 
+                                      random_state=random_state, 
+                                      n_jobs=-1)
+    rf_model.fit(X, y)
     
-#     # Get feature importances
-#     feature_importances = pd.DataFrame({
-#         'feature': X.columns,
-#         'importance': rf_model.feature_importances_
-#     }).sort_values('importance', ascending=False)
+    # Get feature importances
+    feature_importances = pd.DataFrame({
+        'feature': X.columns,
+        'importance': rf_model.feature_importances_
+    }).sort_values('importance', ascending=False)
     
-#     # Select top n features
-#     top_features = feature_importances.head(n_features)['feature'].tolist()
+    # Select top n features
+    top_features = feature_importances.head(n_features)['feature'].tolist()
     
-#     print(f"Top {n_features} features by tree-based importance:")
-#     for i, row in feature_importances.head(n_features).iterrows():
-#         print(f"{i+1}. {row['feature']}: {row['importance']:.6f}")
+    print(f"Top {n_features} features by tree-based importance:")
+    for i, row in feature_importances.head(n_features).iterrows():
+        print(f"{i+1}. {row['feature']}: {row['importance']:.6f}")
     
-#     return top_features
+    return top_features
 
-# def select_features(df, methods=['correlation', 'tree'], n_features=30):
-#     """
-#     Apply multiple feature selection methods and return the union or intersection.
+def select_features(df, methods=['correlation', 'tree'], n_features=30):
+    """
+    Apply multiple feature selection methods and return the union or intersection.
     
-#     Parameters:
-#     - df: DataFrame containing features and target
-#     - methods: List of methods to use ('correlation', 'tree')
-#     - n_features: Number of top features to select per method (default: 30)
+    Parameters:
+    - df: DataFrame containing features and target
+    - methods: List of methods to use ('correlation', 'tree')
+    - n_features: Number of top features to select per method (default: 30)
     
-#     Returns:
-#     - DataFrame with selected features only
-#     """
-#     selected_features = set()
+    Returns:
+    - DataFrame with selected features only
+    """
+    selected_features = set()
     
-#     if 'correlation' in methods:
-#         corr_features = correlation_based_selection(df, n_features=n_features)
-#         selected_features.update(corr_features)
+    if 'correlation' in methods:
+        corr_features = correlation_based_selection(df, n_features=n_features)
+        selected_features.update(corr_features)
         
-#     if 'tree' in methods:
-#         tree_features = tree_based_selection(df, n_features=n_features)
-#         selected_features.update(tree_features)
+    if 'tree' in methods:
+        tree_features = tree_based_selection(df, n_features=n_features)
+        selected_features.update(tree_features)
     
-#     # Always include the target and ID if they exist
-#     if 'TARGET' in df.columns:
-#         selected_features.add('TARGET')
-#     if 'SK_ID_CURR' in df.columns:
-#         selected_features.add('SK_ID_CURR')
+    # Always include the target and ID 
+    if 'TARGET' in df.columns:
+        selected_features.add('TARGET')
+    if 'SK_ID_CURR' in df.columns:
+        selected_features.add('SK_ID_CURR')
     
-#     # Convert to list and select from DataFrame
-#     selected_features_list = list(selected_features)
-#     print(f"\nTotal unique features selected: {len(selected_features_list)}")
+    # Convert to list and select from DataFrame
+    selected_features_list = list(selected_features)
+    print(f"\nTotal unique features selected: {len(selected_features_list)}")
     
-#     return df[selected_features_list]
+    return df[selected_features_list]
 
 # # ----------------------------------- # 
 
@@ -377,8 +377,17 @@ if __name__ == "__main__":
     processed_df = data_Preprocessing(df, missing_stats, numerical_features, categorical_features)
     
     # Feature Engineering
-    # feature_selected_df = select_features(processed_df)
-    # print(f"Final dataset shape after feature selection: {feature_selected_df.shape}")
-    
+    feature_selected_df = select_features(processed_df)
+    print(f"Final dataset shape after feature selection: {feature_selected_df.shape}")
+    # Check if TARGET exists in feature_selected_df
+    if 'TARGET' in feature_selected_df.columns:
+        print("TARGET column exists in the selected features")
+    else:
+        print("WARNING: TARGET column is missing from the selected features")
+    # Check if SK_ID_CURR exists as well
+    if 'SK_ID_CURR' in feature_selected_df.columns:
+        print("SK_ID_CURR column exists in the selected features")
+    else:
+        print("WARNING: SK_ID_CURR column is missing from the selected features")
     # Training Models 
     
